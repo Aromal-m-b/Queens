@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #fdfcf0; /* Warm creamy off-white - Elegant Vibrant Palette default background */
+  color: #2d3436; /* Dark charcoal - Elegant high contrast text */
+}
+
+/* Vibrant Palette Custom Classes for Level Region Cells */
+.bg-vibrant-0 { background-color: #ffeaa7; color: #2d3436; }
+.bg-vibrant-1 { background-color: #fab1a0; color: #2d3436; }
+.bg-vibrant-2 { background-color: #81ecec; color: #2d3436; }
+.bg-vibrant-3 { background-color: #fd79a8; color: #2d3436; }
+.bg-vibrant-4 { background-color: #a29bfe; color: #2d3436; }
+.bg-vibrant-5 { background-color: #55efc4; color: #2d3436; }
+.bg-vibrant-6 { background-color: #74b9ff; color: #2d3436; }
+.bg-vibrant-7 { background-color: #ffe0e6; color: #2d3436; }
+.bg-vibrant-8 { background-color: #e2e2cc; color: #2d3436; }
+.bg-vibrant-9 { background-color: #fdcb6e; color: #2d3436; }
+
+/* Beautiful custom ring pulsing effects */
+@keyframes pulseRing {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulseRing 1.5s infinite;
+}
