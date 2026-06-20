@@ -13,6 +13,7 @@ export interface BoardDefinition {
   size: number;
   grid: number[][]; // grid[r][c] contains region ID
   solution: CellCoords[];
+  colors?: string[];
 }
 
 export interface GameStats {

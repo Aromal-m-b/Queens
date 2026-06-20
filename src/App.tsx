@@ -16,7 +16,8 @@ import {
   Star,
   Info,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  Lock
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { BOARDS, Board } from "./data/boards";
@@ -24,6 +25,7 @@ import { CellValue, GameStats } from "./types";
 import Tutorial from "./components/Tutorial";
 import SuccessCelebration from "./components/SuccessCelebration";
 import BoardHUD from "./components/BoardHUD";
+import AdminPortal from "./components/AdminPortal";
 
 export default function App() {
   // Navigation states
@@ -61,7 +63,44 @@ export default function App() {
   }
   const [queens, setQueens] = useState<QueenPos[]>([]);
 
-  // Load solved levels on initial mount
+  // Dynamic Levels State
+  const [allBoards, setAllBoards] = useState<Board[]>([]);
+  const [showAdminPortal, setShowAdminPortal] = useState(false);
+
+  // Client-side router for /admin path or #/admin hash
+  useEffect(() => {
+    const checkRoute = () => {
+      const isPathAdmin = window.location.pathname === "/admin" || 
+                          window.location.pathname.startsWith("/admin/") ||
+                          window.location.hash === "#/admin" || 
+                          window.location.hash === "#admin";
+      setShowAdminPortal(isPathAdmin);
+    };
+
+    checkRoute();
+
+    window.addEventListener("popstate", checkRoute);
+    window.addEventListener("hashchange", checkRoute);
+
+    return () => {
+      window.removeEventListener("popstate", checkRoute);
+      window.removeEventListener("hashchange", checkRoute);
+    };
+  }, []);
+
+  const navigateToAdmin = () => {
+    window.history.pushState({}, "", "/admin");
+    setShowAdminPortal(true);
+    playChime("click");
+  };
+
+  const navigateToHome = () => {
+    window.history.pushState({}, "", "/");
+    setShowAdminPortal(false);
+    playChime("click");
+  };
+
+  // Load solved levels and levels count on initial mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem("queens-puzzle-solved-levels");
@@ -71,7 +110,28 @@ export default function App() {
     } catch (e) {
       console.error("Failed to load solved levels state", e);
     }
+
+    try {
+      const savedLevels = localStorage.getItem("queens-puzzle-all-boards-v1");
+      if (savedLevels) {
+        setAllBoards(JSON.parse(savedLevels));
+      } else {
+        setAllBoards(BOARDS);
+      }
+    } catch (e) {
+      console.error("Failed to load custom levels", e);
+      setAllBoards(BOARDS);
+    }
   }, []);
+
+  const saveBoardsState = (newBoards: Board[]) => {
+    setAllBoards(newBoards);
+    try {
+      localStorage.setItem("queens-puzzle-all-boards-v1", JSON.stringify(newBoards));
+    } catch (e) {
+      console.error("Failed to save levels", e);
+    }
+  };
 
   // Save solved level when achieved
   const markLevelAsSolved = (id: string) => {
@@ -412,10 +472,10 @@ export default function App() {
   // Handle Level Navigation Next
   const handleNextLevel = () => {
     if (!activeBoard) return;
-    const currentIdx = BOARDS.findIndex((b) => b.id === activeBoard.id);
+    const currentIdx = allBoards.findIndex((b) => b.id === activeBoard.id);
     const nextIdx = currentIdx + 1;
-    if (nextIdx < BOARDS.length && BOARDS[nextIdx].difficulty === selectedDifficulty) {
-      loadBoard(BOARDS[nextIdx]);
+    if (nextIdx < allBoards.length && allBoards[nextIdx].difficulty === selectedDifficulty) {
+      loadBoard(allBoards[nextIdx]);
     } else {
       resetToLevelsList();
     }
@@ -627,11 +687,11 @@ export default function App() {
   };
 
   // Count total solved levels across all difficulties
-  const totalSolvedCount = solvedLevelIds.length;
+  const totalSolvedCount = allBoards.filter((b) => solvedLevelIds.includes(b.id)).length;
 
-  const easyBoards = BOARDS.filter((b) => b.difficulty === "easy");
-  const mediumBoards = BOARDS.filter((b) => b.difficulty === "medium");
-  const hardBoards = BOARDS.filter((b) => b.difficulty === "hard");
+  const easyBoards = allBoards.filter((b) => b.difficulty === "easy");
+  const mediumBoards = allBoards.filter((b) => b.difficulty === "medium");
+  const hardBoards = allBoards.filter((b) => b.difficulty === "hard");
 
   const easySolvedCount = easyBoards.filter((b) => solvedLevelIds.includes(b.id)).length;
   const mediumSolvedCount = mediumBoards.filter((b) => solvedLevelIds.includes(b.id)).length;
@@ -639,9 +699,9 @@ export default function App() {
 
   return (
     <div className={`bg-[#fdfcf0] text-[#2d3436] flex flex-col items-center select-none font-sans relative transition-all ${
-      !selectedDifficulty 
+      (!selectedDifficulty && !showAdminPortal) 
         ? "h-screen w-screen overflow-hidden" 
-        : "min-h-screen w-full pb-6"
+        : "min-h-screen w-full pb-12 overflow-y-auto"
     }`}>
       {/* Dynamic Header */}
       <header className={`w-full px-6 flex items-center justify-between border-b-4 border-[#e2e2cc] bg-white shrink-0 transition-all ${activeBoard ? "py-2" : "py-5"}`}>
@@ -670,7 +730,7 @@ export default function App() {
           {/* Global statistics pill */}
           <div className="px-3.5 py-1.5 bg-[#f1f2f6] rounded-xl border-2 border-[#dfe6e9] flex items-center gap-1.5 text-xs text-[#2d3436] font-bold shadow-sm">
             <Trophy className="w-3.5 h-3.5 text-[#fdcb6e] fill-[#fdcb6e]/10" />
-            <span>Solved: {totalSolvedCount} / {BOARDS.length}</span>
+            <span>Solved: {totalSolvedCount} / {allBoards.length}</span>
           </div>
 
           <button
@@ -697,10 +757,21 @@ export default function App() {
       </header>
 
       {/* Main Container */}
-      <main className={`w-full px-6 flex-grow flex flex-col items-center justify-center transition-all ${
-        activeBoard ? "py-1 sm:py-2" : !selectedDifficulty ? "py-2 sm:py-4" : "py-6"
+      <main className={`w-full px-6 flex-grow flex flex-col items-center transition-all ${
+        showAdminPortal 
+          ? "justify-start py-4 sm:py-10" 
+          : (activeBoard ? "py-1 sm:py-2 justify-center" : !selectedDifficulty ? "py-2 sm:py-4 justify-center" : "py-6 justify-center")
       }`}>
         
+        {showAdminPortal ? (
+          <AdminPortal
+            onClose={navigateToHome}
+            allBoards={allBoards}
+            onSaveBoards={saveBoardsState}
+            playChime={playChime}
+          />
+        ) : (
+          <>
         {/* ======================================================== */}
         {/* VIEW 1: MINIMALIST DIFFICULTY SELECTION (ROOT)           */}
         {/* ======================================================== */}
@@ -737,7 +808,7 @@ export default function App() {
                     <span className="bg-white/35 text-white px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider leading-none">
                       {easySolvedCount}/{easyBoards.length} Solved
                     </span>
-                    <span className="bg-white/20 text-white px-2 py-0.5 rounded-lg text-xs font-black leading-none">5×5</span>
+                    <span className="bg-white/20 text-white px-2 py-0.5 rounded-lg text-xs font-black leading-none">6×6</span>
                   </div>
                 </div>
               </button>
@@ -786,6 +857,18 @@ export default function App() {
                 </div>
               </button>
             </div>
+
+            {/* Direct Admin access link specified by user */}
+            <div className="mt-12 text-center select-none">
+              <button
+                onClick={navigateToAdmin}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 hover:bg-white text-[#2d3436] font-black text-xs rounded-xl border-2 border-[#2d3436] transition-all cursor-pointer shadow-[2px_2px_0px_#2d3436] hover:translate-y-[-1px] active:translate-y-[1px]"
+                id="landing-admin-link"
+              >
+                <Lock className="w-3.5 h-3.5 text-[#ff7675]" />
+                <span>Admin Level Editor (/admin)</span>
+              </button>
+            </div>
           </motion.div>
         )}
 
@@ -829,7 +912,7 @@ export default function App() {
 
             {/* Level Cards Compact Grid */}
             <div className="flex flex-wrap items-center justify-center gap-4 max-w-xl mx-auto py-8">
-              {BOARDS.filter((board) => board.difficulty === selectedDifficulty).map((board, index) => {
+              {allBoards.filter((board) => board.difficulty === selectedDifficulty).map((board, index) => {
                 const isSolved = solvedLevelIds.includes(board.id);
                 return (
                   <button
@@ -894,7 +977,8 @@ export default function App() {
                 {gridState.map((rowArr, r) =>
                   rowArr.map((cellValue, c) => {
                     const regionId = activeBoard.grid[r][c];
-                    const pastelBg = getPastelBgForRegion(regionId);
+                    const customBgStyle = activeBoard.colors ? { backgroundColor: activeBoard.colors[regionId % activeBoard.colors.length] } : {};
+                    const pastelBg = activeBoard.colors ? "" : getPastelBgForRegion(regionId);
                     
                     // Calculate borders dynamically to make distinct thick divider lines
                     const hasTopBorder = r === 0 || activeBoard.grid[r][c] !== activeBoard.grid[r - 1][c];
@@ -928,6 +1012,7 @@ export default function App() {
                         key={`${r}-${c}`}
                         className={`aspect-square relative cursor-pointer select-none flex items-center justify-center transition-all ${pastelBg}`}
                         style={{
+                          ...customBgStyle,
                           borderTopWidth: hasTopBorder ? "3px" : "0.5px",
                           borderBottomWidth: hasBottomBorder ? "3px" : "0.5px",
                           borderLeftWidth: hasLeftBorder ? "3px" : "0.5px",
@@ -1087,6 +1172,8 @@ export default function App() {
 
           </div>
         )}
+          </>
+        )}
 
       </main>
 
@@ -1106,8 +1193,8 @@ export default function App() {
           movesCount={movesCount}
           levelName={`Board ${activeBoard.id.replace("-", " ")}`}
           hasWithNextLevel={
-            BOARDS.findIndex((b) => b.id === activeBoard.id) + 1 < BOARDS.length &&
-            BOARDS[BOARDS.findIndex((b) => b.id === activeBoard.id) + 1].difficulty === selectedDifficulty
+            allBoards.findIndex((b) => b.id === activeBoard.id) + 1 < allBoards.length &&
+            allBoards[allBoards.findIndex((b) => b.id === activeBoard.id) + 1].difficulty === selectedDifficulty
           }
           onNextLevel={handleNextLevel}
           onRestart={handleRestartBoard}
