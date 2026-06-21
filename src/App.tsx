@@ -734,6 +734,25 @@ export default function App() {
           </div>
 
           <button
+            onClick={() => {
+              if (showAdminPortal) {
+                navigateToHome();
+              } else {
+                navigateToAdmin();
+              }
+            }}
+            className={`w-10 h-10 rounded-xl border-2 flex items-center justify-center text-[#2d3436] transition-all shadow-sm focus:outline-none cursor-pointer ${
+              showAdminPortal 
+                ? "bg-[#6c5ce7] border-[#6c5ce7] text-white" 
+                : "bg-white hover:bg-[#ffeaa7]/50 border-[#dfe6e9]"
+            }`}
+            title="Admin Portal"
+            id="admin-portal-toggle-btn"
+          >
+            <Lock className="w-5 h-5" />
+          </button>
+
+          <button
             onClick={() => setShowTutorial(true)}
             className="w-10 h-10 rounded-xl bg-white hover:bg-[#ffeaa7]/50 border-2 border-[#dfe6e9] flex items-center justify-center text-[#2d3436] transition-colors shadow-sm focus:outline-none cursor-pointer"
             title="How To Play"
@@ -855,18 +874,6 @@ export default function App() {
                     <span className="bg-white/20 text-white px-2 py-0.5 rounded-lg text-xs font-black leading-none">10×10</span>
                   </div>
                 </div>
-              </button>
-            </div>
-
-            {/* Direct Admin access link specified by user */}
-            <div className="mt-12 text-center select-none">
-              <button
-                onClick={navigateToAdmin}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 hover:bg-white text-[#2d3436] font-black text-xs rounded-xl border-2 border-[#2d3436] transition-all cursor-pointer shadow-[2px_2px_0px_#2d3436] hover:translate-y-[-1px] active:translate-y-[1px]"
-                id="landing-admin-link"
-              >
-                <Lock className="w-3.5 h-3.5 text-[#ff7675]" />
-                <span>Admin Level Editor (/admin)</span>
               </button>
             </div>
           </motion.div>
